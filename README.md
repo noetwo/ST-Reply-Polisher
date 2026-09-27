@@ -47,11 +47,3 @@ SillyTavern/data/<用户名>/scripts/extensions/third-party/<目录名>
 ```bash
 npm test
 ```
-
-## 范围
-
-本仓库不包含授权码、统计、更新检查、Google 直连、SillyTavern 当前主连接复用、表格、记忆/RAG、剧情推进或原版配置迁移。
-
-## 致谢与授权
-
-本扩展基于 Amily2号助手 v2.3.6 的正文优化功能，经授权提取和修改。仓库发布者应按取得的授权补充适用的 `LICENSE` 或授权说明；在此之前不要把本仓库描述为采用某个未确认的开源许可证。
