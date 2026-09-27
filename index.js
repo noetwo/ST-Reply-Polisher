@@ -5,6 +5,8 @@ import { extensionName, getSettings } from './core/settings.js';
 import { isOptimizableMessage } from './core/utils.js';
 import { bindPanel } from './ui/bindings.js';
 
+let manualButtonObserver = null;
+
 function addManualOptimizationButtons() {
     const context = getContext();
     $('#chat .mes').each(function () {
@@ -13,8 +15,11 @@ function addManualOptimizationButtons() {
         const $actions = $(this).find('.extraMesButtons').first();
         if (!$actions.length || $actions.find('.body_optimizer_manual').length) return;
         $actions.prepend($('<div>', {
-            class: 'mes_button body_optimizer_manual fa-solid fa-wand-magic-sparkles',
+            class: 'mes_button body_optimizer_manual fa-solid fa-wand-magic-sparkles interactable',
             title: '主动优化此消息',
+            role: 'button',
+            tabindex: 0,
+            'aria-label': '主动优化此消息',
         }));
     });
 }
@@ -32,8 +37,13 @@ function bindManualOptimization() {
             $button.data('busy', false).removeClass('fa-spin');
         }
     });
-    addManualOptimizationButtons();
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, addManualOptimizationButtons);
+    manualButtonObserver?.disconnect();
+    const chat = document.getElementById('chat');
+    if (chat) {
+        manualButtonObserver = new MutationObserver(addManualOptimizationButtons);
+        manualButtonObserver.observe(chat, { childList: true, subtree: true });
+    }
+    requestAnimationFrame(addManualOptimizationButtons);
 }
 
 async function initialize() {
@@ -53,7 +63,7 @@ async function initialize() {
         setTimeout(addManualOptimizationButtons, 0);
     });
     await import('./PreOptimizationViewer/index.js');
-    console.log('[正文优化] v1.3.0 已加载。');
+    console.log('[正文优化] v1.3.1 已加载。');
 }
 
 initialize().catch(error => {

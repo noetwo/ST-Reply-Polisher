@@ -126,8 +126,13 @@
     cursor: pointer;
 }
 
-.family2-btn {
-    display: inline-block;
+.menu_button.family2-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: max-content;
+    flex: 0 0 auto;
+    white-space: nowrap;
     padding: 4px 14px;
     border-radius: 8px;
     cursor: pointer;
@@ -136,6 +141,15 @@
 
 .family2-btn-row {
     justify-content: flex-start;
+}
+
+.family2-stack {
+    align-items: stretch;
+    flex-direction: column;
+}
+
+.family2-stack > .family2-inline {
+    flex: none;
 }
 
 .family2-spin i {
