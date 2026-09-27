@@ -186,11 +186,14 @@ export async function processOptimization(messageId, previousMessages, signal) {
     const restoredTarget = restoreExclusions(optimizedTarget, masked.replacements);
     assertCurrent(lease);
     const finalMessage = replaceContentByTag(lease.original, targetTag, restoredTarget);
-    setSnapshot({ original: originalTarget, optimized: restoredTarget });
 
     const applied = settings.applyOptimizedToMessage && finalMessage !== lease.original
         ? await applyMessageContent(lease, finalMessage)
         : false;
+    const current = getContext();
+    if (current.chatId === lease.chatId && current.characterId === lease.characterId && current.groupId === lease.groupId) {
+        setSnapshot({ original: originalTarget, optimized: restoredTarget });
+    }
     if (settings.showOptimizationToast) {
         toastr.success(applied ? '优化完成，已写回消息。' : '优化完成，可打开对比查看。', '正文优化');
     }
