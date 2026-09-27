@@ -1,6 +1,5 @@
 import { saveSettingsDebounced } from '/script.js';
 import { fetchModels, testApiConnection } from '../core/api.js';
-import { hasRetryableFailure, RETRY_STATE_EVENT, retryLastFailure } from '../core/optimizer.js';
 import { defaultSettings, getApiKey, getSettings, promptDefaults, setApiKey } from '../core/settings.js';
 import { listWorldBookNames } from '../core/worldbook.js';
 
@@ -156,20 +155,6 @@ function bindApiButtons($panel) {
     });
 }
 
-function bindRetryButton($panel) {
-    const $button = $panel.find('#amily2_retry_failed');
-    const label = $button.text();
-    const sync = () => $button.prop('disabled', !hasRetryableFailure());
-    document.addEventListener(RETRY_STATE_EVENT, sync);
-    $button.on('click', async () => {
-        $button.prop('disabled', true).text('重试中…');
-        await retryLastFailure();
-        $button.text(label);
-        sync();
-    });
-    sync();
-}
-
 export function bindPanel($panel) {
     const settings = getSettings();
     bindGeneric($panel, settings);
@@ -178,5 +163,4 @@ export function bindPanel($panel) {
     bindPromptEditor($panel, settings);
     bindWorldbooks($panel, settings);
     bindApiButtons($panel);
-    bindRetryButton($panel);
 }

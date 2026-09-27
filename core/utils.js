@@ -25,6 +25,14 @@ export function isValidTagName(tagName) {
     return /^[A-Za-z_][A-Za-z0-9_.:-]*$/.test(String(tagName ?? ''));
 }
 
+export function isOptimizableMessage(message) {
+    return Boolean(message
+        && !message.is_user
+        && !message.is_system
+        && typeof message.mes === 'string'
+        && message.mes.trim());
+}
+
 export function extractContentByTag(text, tagName) {
     const indices = findLastTagIndices(text, tagName);
     return indices ? String(text).slice(indices.contentStart, indices.contentEnd) : null;

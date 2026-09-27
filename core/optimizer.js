@@ -3,12 +3,10 @@ import { getContext } from '/scripts/extensions.js';
 import { callAI, generateRandomSeed } from './api.js';
 import { getPresetPrompts } from './prompts.js';
 import { getSettings } from './settings.js';
-import { extractContentByTag, isValidTagName, maskExclusionRules, replaceContentByTag, restoreExclusions } from './utils.js';
+import { extractContentByTag, isOptimizableMessage, isValidTagName, maskExclusionRules, replaceContentByTag, restoreExclusions } from './utils.js';
 import { getOptimizationWorldbookContent } from './worldbook.js';
 
 let activeController = null;
-let retryLease = null;
-export const RETRY_STATE_EVENT = 'bodyOptimizerRetryStateChanged';
 
 function setSnapshot(snapshot) {
     window.BodyOptimizerSnapshot = snapshot;
@@ -23,11 +21,6 @@ function captureLease(context, messageId, message) {
         message,
         original: message.mes,
     };
-}
-
-function setRetryLease(lease) {
-    retryLease = lease;
-    document.dispatchEvent(new CustomEvent(RETRY_STATE_EVENT, { detail: { available: Boolean(lease) } }));
 }
 
 function assertCurrent(lease, expectedContent = lease.original) {
@@ -51,37 +44,35 @@ function readMessageId(data, context) {
 export function cancelOptimization() {
     activeController?.abort(new DOMException('聊天已变化', 'AbortError'));
     activeController = null;
-    setRetryLease(null);
     setSnapshot(null);
 }
 
-async function runOptimization(messageId) {
+async function runOptimization(messageId, manual = false) {
     const settings = getSettings();
     const context = getContext();
     const message = context.chat?.[messageId];
-    if (!message || message.is_user || typeof message.mes !== 'string' || !message.mes.trim()) return false;
+    if (!isOptimizableMessage(message)) {
+        if (manual) toastr.warning('只能优化非空的 AI 消息。', '正文优化');
+        return false;
+    }
     const lease = captureLease(context, messageId, message);
 
     activeController?.abort(new DOMException('已有更新的消息', 'AbortError'));
     const controller = new AbortController();
     activeController = controller;
-    setRetryLease(null);
 
     const configuredCount = Number(settings.contextMessages);
     const contextCount = Number.isFinite(configuredCount) ? Math.max(0, Math.min(100, Math.trunc(configuredCount))) : 2;
     const previousMessages = context.chat.slice(Math.max(0, messageId - contextCount), messageId);
 
     try {
-        await processOptimization(messageId, previousMessages, controller.signal);
-        return true;
+        const result = await processOptimization(messageId, previousMessages, controller.signal);
+        if (!result && manual) {
+            toastr.warning(`该消息中没有可优化的 <${settings.optimizationTargetTag}> 内容。`, '正文优化');
+        }
+        return Boolean(result);
     } catch (error) {
         if (error?.name === 'AbortError') return false;
-        try {
-            assertCurrent(lease);
-            setRetryLease(lease);
-        } catch {
-            setRetryLease(null);
-        }
         console.error('[正文优化] 任务失败:', error);
         if (settings.showOptimizationToast) toastr.error(error?.message || '正文优化失败。', '正文优化');
         return false;
@@ -97,23 +88,8 @@ export async function onMessageReceived(data) {
     await runOptimization(messageId);
 }
 
-export function hasRetryableFailure() {
-    if (!retryLease) return false;
-    try {
-        assertCurrent(retryLease);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-export async function retryLastFailure() {
-    if (!hasRetryableFailure()) {
-        setRetryLease(null);
-        toastr.warning('原聊天或消息已经变化，无法重试。', '正文优化');
-        return false;
-    }
-    return await runOptimization(retryLease.messageId);
+export async function optimizeMessage(messageId) {
+    return await runOptimization(messageId, true);
 }
 
 export async function processOptimization(messageId, previousMessages, signal) {
