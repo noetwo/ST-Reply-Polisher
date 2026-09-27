@@ -207,6 +207,7 @@ export const defaultSettings = {
     optimizationExclusionRules: [],
     showOptimizationToast: true,
     apiUrl: '',
+    apiKey: '',
     model: '',
     maxTokens: 4096,
     temperature: 1.0,
@@ -223,23 +224,19 @@ export const defaultSettings = {
 const apiKeySessionKey = `${extensionName}:apiKey`;
 
 export function getApiKey() {
-    return sessionStorage.getItem(apiKeySessionKey) ?? '';
-}
-
-export function setApiKey(value) {
-    const key = String(value ?? '').trim();
-    if (key) sessionStorage.setItem(apiKeySessionKey, key);
-    else sessionStorage.removeItem(apiKeySessionKey);
+    return String(getSettings().apiKey ?? '').trim();
 }
 
 export function getSettings() {
     if (!extension_settings[extensionName]) extension_settings[extensionName] = {};
     const settings = extension_settings[extensionName];
+    const sessionKey = sessionStorage.getItem(apiKeySessionKey);
+    if (settings.apiKey === undefined && sessionKey) settings.apiKey = sessionKey;
+    sessionStorage.removeItem(apiKeySessionKey);
     for (const key of Object.keys(defaultSettings)) {
         if (settings[key] === undefined) settings[key] = structuredClone(defaultSettings[key]);
     }
     delete settings.apiProvider;
-    delete settings.apiKey;
     delete settings.__migratedFromAmily2;
     return settings;
 }

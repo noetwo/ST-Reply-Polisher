@@ -1,4 +1,4 @@
-import { eventSource, event_types } from '/script.js';
+import { eventSource, event_types, saveSettingsDebounced } from '/script.js';
 import { getContext, renderExtensionTemplateAsync } from '/scripts/extensions.js';
 import { cancelOptimization, onMessageReceived, optimizeMessage } from './core/optimizer.js';
 import { extensionName, getSettings } from './core/settings.js';
@@ -38,6 +38,7 @@ function bindManualOptimization() {
 
 async function initialize() {
     getSettings();
+    saveSettingsDebounced();
     const template = await renderExtensionTemplateAsync(`third-party/${extensionName}`, 'ui/panel');
     const $host = $('#extensions_settings2');
     if (!$host.length) throw new Error('找不到 SillyTavern 扩展设置容器。');
@@ -52,7 +53,7 @@ async function initialize() {
         setTimeout(addManualOptimizationButtons, 0);
     });
     await import('./PreOptimizationViewer/index.js');
-    console.log('[正文优化] v1.2.1 已加载。');
+    console.log('[正文优化] v1.2.2 已加载。');
 }
 
 initialize().catch(error => {

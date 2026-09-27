@@ -1,6 +1,6 @@
 import { saveSettingsDebounced } from '/script.js';
 import { fetchModels, testApiConnection } from '../core/api.js';
-import { defaultSettings, getApiKey, getSettings, promptDefaults, setApiKey } from '../core/settings.js';
+import { defaultSettings, getSettings, promptDefaults } from '../core/settings.js';
 import { listWorldBookNames } from '../core/worldbook.js';
 
 const numberLimits = {
@@ -40,12 +40,6 @@ function bindGeneric($panel, settings) {
             saveSettingsDebounced();
         });
     });
-}
-
-function bindApiKey($panel) {
-    const $input = $panel.find('#amily2_api_key');
-    $input.val(getApiKey());
-    $input.on('input', () => setApiKey($input.val()));
 }
 
 function bindExclusionRules($panel, settings) {
@@ -158,7 +152,6 @@ function bindApiButtons($panel) {
 export function bindPanel($panel) {
     const settings = getSettings();
     bindGeneric($panel, settings);
-    bindApiKey($panel);
     bindExclusionRules($panel, settings);
     bindPromptEditor($panel, settings);
     bindWorldbooks($panel, settings);
