@@ -27,7 +27,10 @@ function addManualOptimizationButtons() {
 function bindManualOptimization() {
     $(document).on('click', '.body_optimizer_manual', async function () {
         const $button = $(this);
-        if ($button.data('busy')) return;
+        if ($button.data('busy')) {
+            cancelOptimization('用户已停止优化');
+            return;
+        }
         const messageId = Number($button.closest('.mes').attr('mesid'));
         if (!Number.isInteger(messageId)) return;
         $button.data('busy', true).addClass('fa-spin');
@@ -63,7 +66,7 @@ async function initialize() {
         setTimeout(addManualOptimizationButtons, 0);
     });
     await import('./PreOptimizationViewer/index.js');
-    console.log('[正文优化] v1.3.1 已加载。');
+    console.log('[正文优化] v1.4.0 已加载。');
 }
 
 initialize().catch(error => {

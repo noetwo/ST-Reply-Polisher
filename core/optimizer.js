@@ -7,6 +7,7 @@ import { extractContentByTag, isOptimizableMessage, isValidTagName, maskExcluded
 import { getOptimizationWorldbookContent } from './worldbook.js';
 
 let activeController = null;
+let activeProgress = null;
 
 function setSnapshot(snapshot) {
     window.BodyOptimizerSnapshot = snapshot;
@@ -41,9 +42,38 @@ function readMessageId(data, context) {
     return context.chat.indexOf(data?.message ?? data);
 }
 
-export function cancelOptimization() {
-    activeController?.abort(new DOMException('聊天已变化', 'AbortError'));
-    activeController = null;
+function clearProgress(controller) {
+    if (!activeProgress || activeProgress.controller !== controller) return;
+    toastr.clear(activeProgress.toast);
+    activeProgress = null;
+}
+
+function showProgress(controller) {
+    clearProgress(activeProgress?.controller);
+    const toast = toastr.info('模型结果将完整接收并校验后再写回。', '正文优化中', {
+        timeOut: 0,
+        extendedTimeOut: 0,
+        tapToDismiss: false,
+        closeButton: false,
+    });
+    const $toast = $(toast);
+    $('<button>', {
+        type: 'button',
+        class: 'menu_button family2-btn',
+        text: '停止优化',
+        'aria-label': '停止正文优化',
+    }).on('click', event => {
+        event.stopPropagation();
+        controller.abort(new DOMException('用户已停止优化', 'AbortError'));
+    }).appendTo($toast.find('.toast-message').first());
+    activeProgress = { controller, toast };
+}
+
+export function cancelOptimization(reason = '聊天已变化') {
+    const controller = activeController;
+    controller?.abort(new DOMException(reason, 'AbortError'));
+    clearProgress(controller);
+    if (activeController === controller) activeController = null;
     setSnapshot(null);
 }
 
@@ -58,8 +88,10 @@ async function runOptimization(messageId, manual = false) {
     const lease = captureLease(context, messageId, message);
 
     activeController?.abort(new DOMException('已有更新的消息', 'AbortError'));
+    clearProgress(activeController);
     const controller = new AbortController();
     activeController = controller;
+    showProgress(controller);
 
     const configuredCount = Number(settings.contextMessages);
     const contextCount = Number.isFinite(configuredCount) ? Math.max(0, Math.min(100, Math.trunc(configuredCount))) : 2;
@@ -72,11 +104,15 @@ async function runOptimization(messageId, manual = false) {
         }
         return Boolean(result);
     } catch (error) {
-        if (error?.name === 'AbortError') return false;
+        if (error?.name === 'AbortError') {
+            if (error?.message === '用户已停止优化') toastr.info('已停止正文优化。', '正文优化');
+            return false;
+        }
         console.error('[正文优化] 任务失败:', error);
         if (settings.showOptimizationToast) toastr.error(error?.message || '正文优化失败。', '正文优化');
         return false;
     } finally {
+        clearProgress(controller);
         if (activeController === controller) activeController = null;
     }
 }

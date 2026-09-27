@@ -1,6 +1,6 @@
 import { getRequestHeaders } from '/script.js';
 import { getApiKey, getSettings } from './settings.js';
-import { extractModelIds, normalizeOpenAIBaseUrl } from './utils.js';
+import { extractModelIds, extractOpenAIText, normalizeOpenAIBaseUrl, parseOpenAISseLine } from './utils.js';
 
 const GENERATE_URL = '/api/backends/chat-completions/generate';
 const MODELS_URL = '/api/backends/chat-completions/status';
@@ -14,7 +14,7 @@ function numberSetting(value, fallback, min, max) {
     return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
 }
 
-async function request(path, body, signal) {
+async function request(path, body, signal, readResponse = response => response.json()) {
     const timeoutSeconds = numberSetting(getSettings().requestTimeoutSeconds, 120, 5, 600);
     const controller = new AbortController();
     const abort = () => controller.abort(signal?.reason);
@@ -33,11 +33,35 @@ async function request(path, body, signal) {
             const detail = (await response.text()).slice(0, 300).replace(/\s+/g, ' ');
             throw new Error(`请求失败 (HTTP ${response.status})${detail ? `: ${detail}` : ''}`);
         }
-        return await response.json();
+        return await readResponse(response);
     } finally {
         clearTimeout(timeout);
         signal?.removeEventListener('abort', abort);
     }
+}
+
+async function readOpenAIResponse(response) {
+    if (response.headers.get('content-type')?.includes('application/json')) {
+        const data = await response.json();
+        if (data?.error) throw new Error(`API 请求失败：${data.error?.message || String(data.error)}`);
+        return extractOpenAIText(data);
+    }
+    if (!response.body) throw new Error('API 响应没有可读取的内容。');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let content = '';
+    while (true) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() ?? '';
+        for (const line of lines) content += parseOpenAISseLine(line);
+        if (done) break;
+    }
+    content += parseOpenAISseLine(buffer);
+    return content;
 }
 
 function getConnection(requireModel = true) {
@@ -57,7 +81,7 @@ function getConnection(requireModel = true) {
 
 export async function callAI(messages, { signal } = {}) {
     const connection = getConnection();
-    const data = await request(GENERATE_URL, {
+    const content = await request(GENERATE_URL, {
         chat_completion_source: 'openai',
         reverse_proxy: connection.reverseProxy,
         proxy_password: connection.apiKey,
@@ -65,12 +89,8 @@ export async function callAI(messages, { signal } = {}) {
         messages,
         max_tokens: connection.maxTokens,
         temperature: connection.temperature,
-        stream: false,
-    }, signal);
-    if (data?.error) {
-        throw new Error(`API 请求失败：${data.error?.message || String(data.error)}`);
-    }
-    const content = data?.choices?.[0]?.message?.content;
+        stream: true,
+    }, signal, readOpenAIResponse);
     if (typeof content !== 'string' || !content.trim()) {
         throw new Error('API 响应中没有可用的文本内容。');
     }

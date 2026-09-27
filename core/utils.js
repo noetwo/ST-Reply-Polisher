@@ -51,6 +51,21 @@ export function extractModelIds(payload) {
     return [...new Set(ids)].sort((a, b) => a.localeCompare(b));
 }
 
+export function extractOpenAIText(payload) {
+    const content = payload?.choices?.[0]?.delta?.content ?? payload?.choices?.[0]?.message?.content;
+    return typeof content === 'string' ? content : '';
+}
+
+export function parseOpenAISseLine(line) {
+    const value = String(line ?? '').trim();
+    if (!value.startsWith('data:')) return '';
+    const data = value.slice(5).trim();
+    if (!data || data === '[DONE]') return '';
+    const payload = JSON.parse(data);
+    if (payload?.error) throw new Error(`API 请求失败：${payload.error?.message || String(payload.error)}`);
+    return extractOpenAIText(payload);
+}
+
 export function extractContentByTag(text, tagName) {
     const indices = findLastTagIndices(text, tagName);
     return indices ? String(text).slice(indices.contentStart, indices.contentEnd) : null;
