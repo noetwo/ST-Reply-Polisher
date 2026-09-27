@@ -125,12 +125,21 @@ function bindWorldbooks($panel, settings) {
 }
 
 function bindApiButtons($panel) {
+    const $modelInput = $panel.find('#amily2_model');
+    const $modelPicker = $panel.find('#amily2_model_picker');
+    $modelPicker.on('change', () => {
+        const model = String($modelPicker.val() ?? '');
+        if (model) $modelInput.val(model).trigger('input');
+    });
+
     $panel.find('#amily2_refresh_models').on('click', async function () {
         const $button = $(this).prop('disabled', true).addClass('family2-spin');
         try {
             const models = await fetchModels();
-            const $list = $panel.find('#amily2_model_list').empty();
-            for (const model of models) $list.append($('<option>').val(model));
+            $modelPicker.empty().append($('<option>').val('').text('选择已获取模型'));
+            for (const model of models) $modelPicker.append($('<option>').val(model).text(model));
+            $modelPicker.prop('disabled', false);
+            if (models.includes(String($modelInput.val() ?? ''))) $modelPicker.val($modelInput.val());
             toastr.success(`已拉取 ${models.length} 个模型。`, '正文优化');
         } catch (error) {
             toastr.error(error?.message || '模型列表拉取失败。', '正文优化');

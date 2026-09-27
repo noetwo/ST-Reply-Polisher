@@ -57,12 +57,14 @@
         <div class="family2-group">
             <label class="family2-label" for="amily2_model">模型</label>
             <div class="family2-inline">
-                <input type="text" id="amily2_model" class="text_pole family2-input" list="amily2_model_list" placeholder="模型 ID">
-                <datalist id="amily2_model_list"></datalist>
+                <input type="text" id="amily2_model" class="text_pole family2-input" placeholder="可手动填写模型 ID">
                 <button type="button" id="amily2_refresh_models" class="menu_button family2-icon-btn" title="拉取模型列表" aria-label="拉取模型列表">
                     <i class="fa-solid fa-arrows-rotate"></i>
                 </button>
             </div>
+            <select id="amily2_model_picker" class="text_pole family2-select family2-model-picker" aria-label="选择已获取模型" disabled>
+                <option value="">点击刷新按钮获取模型</option>
+            </select>
         </div>
         <div class="family2-group family2-inline-3">
             <label class="family2-label" for="amily2_max_tokens">最大 Token</label>

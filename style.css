@@ -97,6 +97,17 @@
     flex: 1;
 }
 
+.family2-model-picker {
+    width: 100%;
+    margin-top: 6px;
+    color-scheme: dark;
+}
+
+.family2-model-picker option {
+    background: var(--SmartThemeBlurTintColor, #222);
+    color: var(--SmartThemeBodyColor, #eee);
+}
+
 .family2-inline-3 .family2-label {
     flex: 1;
 }
