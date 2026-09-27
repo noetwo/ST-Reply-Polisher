@@ -9,14 +9,6 @@ export function generateRandomSeed() {
     return `[优化种子: ${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}]`;
 }
 
-export function normalizeChatCompletionsUrl(url) {
-    const value = String(url ?? '').trim().replace(/\/+$/, '');
-    if (!value) return '';
-    if (/\/chat\/completions$/i.test(value)) return value;
-    if (/\/v\d+(?:beta)?$/i.test(value)) return `${value}/chat/completions`;
-    return `${value}/v1/chat/completions`;
-}
-
 function numberSetting(value, fallback, min, max) {
     const number = Number(value);
     return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
@@ -50,7 +42,7 @@ async function request(path, body, signal) {
 
 function getConnection(requireModel = true) {
     const settings = getSettings();
-    const reverseProxy = normalizeChatCompletionsUrl(settings.apiUrl);
+    const reverseProxy = normalizeOpenAIBaseUrl(settings.apiUrl);
     const model = String(settings.model ?? '').trim();
     if (!reverseProxy) throw new Error('请填写 OpenAI 兼容 API 地址。');
     if (requireModel && !model) throw new Error('请填写模型名称。');
@@ -75,6 +67,9 @@ export async function callAI(messages, { signal } = {}) {
         temperature: connection.temperature,
         stream: false,
     }, signal);
+    if (data?.error) {
+        throw new Error(`API 请求失败：${data.error?.message || String(data.error)}`);
+    }
     const content = data?.choices?.[0]?.message?.content;
     if (typeof content !== 'string' || !content.trim()) {
         throw new Error('API 响应中没有可用的文本内容。');

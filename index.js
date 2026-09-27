@@ -53,7 +53,7 @@ async function initialize() {
         setTimeout(addManualOptimizationButtons, 0);
     });
     await import('./PreOptimizationViewer/index.js');
-    console.log('[正文优化] v1.2.3 已加载。');
+    console.log('[正文优化] v1.2.4 已加载。');
 }
 
 initialize().catch(error => {
