@@ -1,5 +1,6 @@
 // 设置存取与默认值（提取自 Amily2号助手 utils/settings.js，仅保留正文优化相关键）
 import { extension_settings } from '/scripts/extensions.js';
+import { defaultExecutionPrompt } from './prompts.js';
 
 const _pathParts = new URL(import.meta.url).pathname.split('/');
 const _tpIdx = _pathParts.indexOf('third-party');
@@ -216,6 +217,7 @@ export const defaultSettings = {
     mainPrompt: _mainPrompt,
     systemPrompt: _systemPrompt,
     outputFormatPrompt: '',
+    executionPrompt: defaultExecutionPrompt,
     modal_wbEnabled: false,
     modal_wbSource: 'character',
     modal_amily2_wb_selected_worldbooks: [],
@@ -247,4 +249,5 @@ export const promptDefaults = {
     mainPrompt: _mainPrompt,
     systemPrompt: _systemPrompt,
     outputFormatPrompt: '',
+    executionPrompt: defaultExecutionPrompt,
 };

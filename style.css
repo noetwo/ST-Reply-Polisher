@@ -1,31 +1,5 @@
 /* ================= 正文优化（精简版）面板样式 ================= */
 
-.family2-lean-block {
-    margin: 10px 0;
-    border: 1px solid var(--SmartThemeBorderColor, #444);
-    border-radius: 12px;
-    padding: 10px 12px;
-    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #222) 70%, transparent);
-}
-
-.family2-lean-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.family2-lean-title {
-    font-weight: 700;
-    font-size: 1.05em;
-}
-
-.family2-lean-title small {
-    opacity: 0.6;
-    font-weight: 400;
-    margin-left: 4px;
-}
-
 .family2-lean-body {
     margin-top: 8px;
 }
@@ -88,6 +62,11 @@
 .family2-prompt-editor {
     font-family: monospace;
     font-size: 0.82em;
+}
+
+.family2-prompt-editor::placeholder {
+    color: var(--SmartThemeBodyColor, #eee);
+    opacity: 0.5;
 }
 
 .family2-inline {

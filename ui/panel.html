@@ -1,13 +1,17 @@
-<div class="family2-lean-block">
-    <div class="family2-lean-header">
-        <span class="family2-lean-title">✒️ 正文优化</span>
-        <label class="family2-toggle" title="收到 AI 回复后自动优化">
-            <input type="checkbox" id="amily2_optimization_enabled">
-            <span class="family2-slider"></span>
-        </label>
+<div id="body_optimizer_settings" class="inline-drawer">
+    <div class="inline-drawer-toggle inline-drawer-header interactable" role="button" tabindex="0">
+        <b>正文优化</b>
+        <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
     </div>
 
-    <div class="family2-lean-body">
+    <div class="inline-drawer-content family2-lean-body">
+        <div class="family2-group family2-row">
+            <label class="family2-label" for="amily2_optimization_enabled">自动优化</label>
+            <label class="family2-toggle" title="收到 AI 回复后自动优化">
+                <input type="checkbox" id="amily2_optimization_enabled" aria-label="自动优化">
+                <span class="family2-slider"></span>
+            </label>
+        </div>
         <p class="family2-hint">仅处理指定标签内的正文；写回前会确认聊天和原消息均未变化。</p>
 
         <div class="family2-group">
@@ -98,9 +102,10 @@
                 <option value="mainPrompt">破限提示词</option>
                 <option value="systemPrompt">任务规则提示词</option>
                 <option value="outputFormatPrompt">输出格式补充</option>
+                <option value="executionPrompt">执行指令（最后一条 user）</option>
             </select>
         </div>
-        <textarea id="amily2_unified_editor" class="text_pole family2-textarea family2-prompt-editor" rows="7"></textarea>
+        <textarea id="amily2_unified_editor" class="text_pole family2-textarea family2-prompt-editor" rows="7" aria-label="提示词内容"></textarea>
         <div class="family2-group family2-btn-row">
             <button type="button" id="amily2_restore_prompt" class="menu_button family2-btn">恢复默认</button>
         </div>

@@ -102,7 +102,12 @@ function bindExclusionTags($panel, settings) {
 function bindPromptEditor($panel, settings) {
     const $selector = $panel.find('#amily2_prompt_selector');
     const $editor = $panel.find('#amily2_unified_editor');
-    const updateEditor = () => $editor.val(settings[$selector.val()] ?? '');
+    const updateEditor = () => {
+        const key = $selector.val();
+        $editor.val(settings[key] ?? '').attr('placeholder', key === 'executionPrompt'
+            ? `留空时使用以下默认执行指令；{{targetTag}} 会自动替换成当前目标标签：\n\n${promptDefaults.executionPrompt}`
+            : '留空则不发送此项提示词。');
+    };
     updateEditor();
     $selector.on('change', updateEditor);
     $editor.on('input', () => {

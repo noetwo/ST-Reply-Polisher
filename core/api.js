@@ -5,10 +5,6 @@ import { extractModelIds, extractOpenAIText, normalizeOpenAIBaseUrl, parseOpenAI
 const GENERATE_URL = '/api/backends/chat-completions/generate';
 const MODELS_URL = '/api/backends/chat-completions/status';
 
-export function generateRandomSeed() {
-    return `[优化种子: ${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}]`;
-}
-
 function numberSetting(value, fallback, min, max) {
     const number = Number(value);
     return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;

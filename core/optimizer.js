@@ -1,7 +1,7 @@
 import { eventSource, event_types } from '/script.js';
 import { getContext } from '/scripts/extensions.js';
-import { callAI, generateRandomSeed } from './api.js';
-import { getPresetPrompts } from './prompts.js';
+import { callAI } from './api.js';
+import { buildOptimizationMessages } from './prompts.js';
 import { getSettings } from './settings.js';
 import { extractContentByTag, isOptimizableMessage, isValidTagName, maskExcludedTags, replaceContentByTag, restoreExclusions } from './utils.js';
 import { getOptimizationWorldbookContent } from './worldbook.js';
@@ -85,20 +85,14 @@ async function runOptimization(messageId, manual = false) {
         if (manual) toastr.warning('只能优化非空的 AI 消息。', '正文优化');
         return false;
     }
-    const lease = captureLease(context, messageId, message);
-
     activeController?.abort(new DOMException('已有更新的消息', 'AbortError'));
     clearProgress(activeController);
     const controller = new AbortController();
     activeController = controller;
     showProgress(controller);
 
-    const configuredCount = Number(settings.contextMessages);
-    const contextCount = Number.isFinite(configuredCount) ? Math.max(0, Math.min(100, Math.trunc(configuredCount))) : 2;
-    const previousMessages = context.chat.slice(Math.max(0, messageId - contextCount), messageId);
-
     try {
-        const result = await processOptimization(messageId, previousMessages, controller.signal);
+        const result = await processOptimization(messageId, controller.signal);
         if (!result && manual) {
             toastr.warning(`该消息中没有可优化的 <${settings.optimizationTargetTag}> 内容。`, '正文优化');
         }
@@ -128,7 +122,7 @@ export async function optimizeMessage(messageId) {
     return await runOptimization(messageId, true);
 }
 
-export async function processOptimization(messageId, previousMessages, signal) {
+export async function processOptimization(messageId, signal) {
     const settings = getSettings();
     const context = getContext();
     const message = context.chat?.[messageId];
@@ -146,38 +140,13 @@ export async function processOptimization(messageId, previousMessages, signal) {
         : { text: originalTarget, replacements: [] };
     setSnapshot({ original: originalTarget, optimized: null });
 
-    const lastMessage = previousMessages.at(-1);
-    const lastUserMessage = lastMessage?.is_user ? lastMessage : null;
-    const historyMessages = lastUserMessage ? previousMessages.slice(0, -1) : previousMessages;
-    const userName = context.name1 || '用户';
-    const characterName = context.name2 || '角色';
-    const history = historyMessages
-        .filter(item => typeof item?.mes === 'string' && item.mes.trim())
-        .map(item => `${item.is_user ? userName : characterName}: ${item.mes.trim()}`)
-        .join('\n');
-
     const worldbook = await getOptimizationWorldbookContent();
     if (signal?.aborted) throw signal.reason;
     assertCurrent(lease);
 
-    const fixedPrompts = await getPresetPrompts('optimization') ?? [];
-    const closingPrompt = fixedPrompts.at(-1);
-    const messages = [
-        { role: 'system', content: generateRandomSeed() },
-        ...fixedPrompts.slice(0, -1),
-    ];
-    if (settings.mainPrompt?.trim()) messages.push({ role: 'system', content: settings.mainPrompt.trim() });
-    if (settings.systemPrompt?.trim()) messages.push({ role: 'system', content: settings.systemPrompt.trim() });
-    if (settings.outputFormatPrompt?.trim()) messages.push({ role: 'system', content: settings.outputFormatPrompt.trim() });
-    if (worldbook) messages.push({ role: 'user', content: `[世界书档案]:\n${worldbook}` });
-    if (history) messages.push({ role: 'user', content: `[上下文参考]:\n${history}` });
-
-    const targetBlock = `<${targetTag}>${masked.text}</${targetTag}>`;
-    const interaction = lastUserMessage
-        ? `${userName}（用户）最新消息：${lastUserMessage.mes}\n${characterName}（AI）最新消息，[核心处理内容]：${targetBlock}`
-        : `${characterName}（AI）最新消息，[核心处理内容]：${targetBlock}`;
-    messages.push({ role: 'user', content: `[目标内容]:\n${interaction}` });
-    if (closingPrompt) messages.push(closingPrompt);
+    const messages = buildOptimizationMessages({
+        settings, chat: context.chat, messageId, worldbook, targetTag, targetText: masked.text,
+    });
 
     const rawContent = await callAI(messages, { signal });
     const optimizedTarget = extractContentByTag(rawContent, targetTag);
