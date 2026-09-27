@@ -225,6 +225,17 @@
     display: none !important;
 }
 
+#body-optimization-viewer-btn {
+    appearance: none;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+
 .popup-body:has(.pov-container) {
     display: flex !important;
     flex-direction: column !important;
