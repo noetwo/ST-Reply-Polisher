@@ -33,6 +33,24 @@ export function isOptimizableMessage(message) {
         && message.mes.trim());
 }
 
+export function normalizeOpenAIBaseUrl(url) {
+    return String(url ?? '').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/i, '');
+}
+
+export function extractModelIds(payload) {
+    if (payload?.error === true) {
+        throw new Error('模型列表接口不可用；请确认 API 支持 /models，或直接手动填写模型 ID。');
+    }
+    const models = [payload, payload?.data, payload?.models, payload?.data?.data, payload?.data?.models]
+        .find(Array.isArray);
+    if (!models) throw new Error('模型列表响应格式不受支持。');
+    const ids = models
+        .map(item => String(item?.id ?? item?.name ?? item?.model ?? item).trim())
+        .filter(Boolean);
+    if (!ids.length) throw new Error('接口没有返回任何模型；可直接手动填写模型 ID。');
+    return [...new Set(ids)].sort((a, b) => a.localeCompare(b));
+}
+
 export function extractContentByTag(text, tagName) {
     const indices = findLastTagIndices(text, tagName);
     return indices ? String(text).slice(indices.contentStart, indices.contentEnd) : null;

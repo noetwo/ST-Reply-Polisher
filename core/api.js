@@ -1,5 +1,6 @@
 import { getRequestHeaders } from '/script.js';
 import { getApiKey, getSettings } from './settings.js';
+import { extractModelIds, normalizeOpenAIBaseUrl } from './utils.js';
 
 const GENERATE_URL = '/api/backends/chat-completions/generate';
 const MODELS_URL = '/api/backends/chat-completions/status';
@@ -85,12 +86,10 @@ export async function fetchModels() {
     const connection = getConnection(false);
     const data = await request(MODELS_URL, {
         chat_completion_source: 'openai',
-        reverse_proxy: connection.reverseProxy,
+        reverse_proxy: normalizeOpenAIBaseUrl(getSettings().apiUrl),
         proxy_password: connection.apiKey,
     });
-    const models = Array.isArray(data) ? data : data?.data ?? data?.models ?? [];
-    return [...new Set(models.map(item => String(item?.id ?? item?.name ?? item?.model ?? item)).filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b));
+    return extractModelIds(data);
 }
 
 export async function testApiConnection() {
