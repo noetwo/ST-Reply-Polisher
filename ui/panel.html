@@ -1,0 +1,124 @@
+<div class="family2-lean-block">
+    <div class="family2-lean-header">
+        <span class="family2-lean-title">✒️ 正文优化</span>
+        <label class="family2-toggle" title="收到 AI 回复后自动优化">
+            <input type="checkbox" id="amily2_optimization_enabled">
+            <span class="family2-slider"></span>
+        </label>
+    </div>
+
+    <div class="family2-lean-body">
+        <p class="family2-hint">仅处理指定标签内的正文；写回前会确认聊天和原消息均未变化。</p>
+
+        <div class="family2-group">
+            <label class="family2-label" for="amily2_optimization_target_tag">目标标签</label>
+            <input type="text" id="amily2_optimization_target_tag" class="text_pole family2-input" placeholder="content">
+        </div>
+        <div class="family2-group family2-row">
+            <span class="family2-label">优化结果写回消息</span>
+            <label class="family2-toggle">
+                <input type="checkbox" id="amily2_apply_optimized_to_message">
+                <span class="family2-slider family2-slider-sm"></span>
+            </label>
+        </div>
+        <div class="family2-group family2-row">
+            <span class="family2-label">完成通知</span>
+            <label class="family2-toggle">
+                <input type="checkbox" id="amily2_show_optimization_toast">
+                <span class="family2-slider family2-slider-sm"></span>
+            </label>
+        </div>
+        <div class="family2-group family2-btn-row">
+            <button type="button" id="amily2_retry_failed" class="menu_button family2-btn" disabled>重试上次失败</button>
+            <span class="family2-note">失败后启用；消息变化后自动失效。</span>
+        </div>
+
+        <hr class="family2-divider">
+        <div class="family2-section-title">内容排除</div>
+        <div class="family2-group family2-row">
+            <span class="family2-label">启用排除规则</span>
+            <label class="family2-toggle">
+                <input type="checkbox" id="amily2_optimization_exclusion_enabled">
+                <span class="family2-slider family2-slider-sm"></span>
+            </label>
+        </div>
+        <textarea id="amily2_exclusion_rules_text" class="text_pole family2-textarea" rows="3"
+            placeholder="每行：开始标记|||结束标记&#10;例如：&lt;StatusPanel&gt;|||&lt;/StatusPanel&gt;"></textarea>
+        <p class="family2-note">匹配内容会用严格占位符保护；模型漏掉或改动占位符时整次写回取消。</p>
+
+        <hr class="family2-divider">
+        <div class="family2-section-title">OpenAI 兼容接口</div>
+        <div class="family2-group">
+            <label class="family2-label" for="amily2_api_url">API 地址</label>
+            <input type="url" id="amily2_api_url" class="text_pole family2-input" placeholder="https://example.com/v1">
+        </div>
+        <div class="family2-group">
+            <label class="family2-label" for="amily2_api_key">API 密钥</label>
+            <input type="password" id="amily2_api_key" class="text_pole family2-input" placeholder="sk-..." autocomplete="off">
+        </div>
+        <p class="family2-note">密钥只保存在当前标签页的 sessionStorage，刷新页面后需重新输入。</p>
+        <div class="family2-group">
+            <label class="family2-label" for="amily2_model">模型</label>
+            <div class="family2-inline">
+                <input type="text" id="amily2_model" class="text_pole family2-input" list="amily2_model_list" placeholder="模型 ID">
+                <datalist id="amily2_model_list"></datalist>
+                <button type="button" id="amily2_refresh_models" class="menu_button family2-icon-btn" title="拉取模型列表" aria-label="拉取模型列表">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+            </div>
+        </div>
+        <div class="family2-group family2-inline-3">
+            <label class="family2-label" for="amily2_max_tokens">最大 Token</label>
+            <input type="number" id="amily2_max_tokens" class="text_pole family2-input" min="1" max="1000000" step="256">
+        </div>
+        <div class="family2-group family2-inline-3">
+            <label class="family2-label" for="amily2_temperature">温度</label>
+            <input type="number" id="amily2_temperature" class="text_pole family2-input" min="0" max="2" step="0.05">
+        </div>
+        <div class="family2-group family2-inline-3">
+            <label class="family2-label" for="amily2_context_messages">上下文参考数</label>
+            <input type="number" id="amily2_context_messages" class="text_pole family2-input" min="0" max="100" step="1">
+        </div>
+        <div class="family2-group family2-inline-3">
+            <label class="family2-label" for="amily2_request_timeout_seconds">超时（秒）</label>
+            <input type="number" id="amily2_request_timeout_seconds" class="text_pole family2-input" min="5" max="600" step="5">
+        </div>
+        <div class="family2-group">
+            <button type="button" id="amily2_test_api" class="menu_button family2-btn">测试连接</button>
+        </div>
+
+        <hr class="family2-divider">
+        <div class="family2-section-title">提示词</div>
+        <div class="family2-group">
+            <label class="family2-label" for="amily2_prompt_selector">编辑项</label>
+            <select id="amily2_prompt_selector" class="family2-select">
+                <option value="mainPrompt">破限提示词</option>
+                <option value="systemPrompt">任务规则提示词</option>
+                <option value="outputFormatPrompt">输出格式补充</option>
+            </select>
+        </div>
+        <textarea id="amily2_unified_editor" class="text_pole family2-textarea family2-prompt-editor" rows="7"></textarea>
+        <div class="family2-group family2-btn-row">
+            <button type="button" id="amily2_restore_prompt" class="menu_button family2-btn">恢复默认</button>
+        </div>
+
+        <hr class="family2-divider">
+        <div class="family2-section-title">世界书参考</div>
+        <div class="family2-group family2-row">
+            <span class="family2-label">启用世界书参考</span>
+            <label class="family2-toggle">
+                <input type="checkbox" id="amily2_wb_enabled">
+                <span class="family2-slider family2-slider-sm"></span>
+            </label>
+        </div>
+        <div class="family2-group">
+            <label class="family2-label" for="amily2_wb_source">来源</label>
+            <select id="amily2_wb_source" class="family2-select">
+                <option value="character">当前角色的世界书</option>
+                <option value="manual">手动选择</option>
+            </select>
+        </div>
+        <div id="amily2_wb_books_list" class="family2-wb-list family2-hidden"></div>
+        <p class="family2-note">所选世界书会注入全部启用条目。</p>
+    </div>
+</div>
