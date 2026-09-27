@@ -1,5 +1,54 @@
 /* ================= 正文优化（精简版）面板样式 ================= */
 
+#toast-container > .body-optimizer-toast {
+    width: min(320px, calc(100vw - 24px));
+    padding: 10px 12px 10px 36px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.45;
+    background-position: 12px center;
+    background-size: 16px 16px;
+    box-shadow: 0 2px 10px #0003;
+}
+
+#toast-container > .body-optimizer-toast .toast-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+#toast-container > .body-optimizer-toast .toast-message {
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#toast-container .body-optimizer-stop {
+    appearance: none;
+    flex: none;
+    margin: 0;
+    padding: 2px 7px;
+    border: 1px solid #ffffff50;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.35;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+#toast-container .body-optimizer-stop:focus-visible {
+    outline: 1px solid white;
+    outline-offset: 2px;
+}
+
 .family2-lean-body {
     margin-top: 8px;
 }

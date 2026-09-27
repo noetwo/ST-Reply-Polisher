@@ -8,6 +8,7 @@ import { getOptimizationWorldbookContent } from './worldbook.js';
 
 let activeController = null;
 let activeProgress = null;
+const toastOptions = { toastClass: 'toast body-optimizer-toast', closeButton: false, progressBar: false, escapeHtml: true };
 
 function setSnapshot(snapshot) {
     window.BodyOptimizerSnapshot = snapshot;
@@ -44,28 +45,29 @@ function readMessageId(data, context) {
 
 function clearProgress(controller) {
     if (!activeProgress || activeProgress.controller !== controller) return;
-    toastr.clear(activeProgress.toast);
+    toastr.clear(activeProgress.toast, { force: true });
     activeProgress = null;
 }
 
 function showProgress(controller) {
     clearProgress(activeProgress?.controller);
-    const toast = toastr.info('模型结果将完整接收并校验后再写回。', '正文优化中', {
+    const toast = toastr.info('正在处理，请稍候…', '正文优化中', {
+        ...toastOptions,
         timeOut: 0,
         extendedTimeOut: 0,
         tapToDismiss: false,
-        closeButton: false,
+        preventDuplicates: false,
     });
     const $toast = $(toast);
     $('<button>', {
         type: 'button',
-        class: 'menu_button family2-btn',
+        class: 'body-optimizer-stop',
         text: '停止优化',
         'aria-label': '停止正文优化',
     }).on('click', event => {
         event.stopPropagation();
         controller.abort(new DOMException('用户已停止优化', 'AbortError'));
-    }).appendTo($toast.find('.toast-message').first());
+    }).appendTo($toast.find('.toast-title').first());
     activeProgress = { controller, toast };
 }
 
@@ -82,7 +84,7 @@ async function runOptimization(messageId, manual = false) {
     const context = getContext();
     const message = context.chat?.[messageId];
     if (!isOptimizableMessage(message)) {
-        if (manual) toastr.warning('只能优化非空的 AI 消息。', '正文优化');
+        if (manual) toastr.warning('只能优化非空的 AI 消息。', '正文优化', toastOptions);
         return false;
     }
     activeController?.abort(new DOMException('已有更新的消息', 'AbortError'));
@@ -94,16 +96,20 @@ async function runOptimization(messageId, manual = false) {
     try {
         const result = await processOptimization(messageId, controller.signal);
         if (!result && manual) {
-            toastr.warning(`该消息中没有可优化的 <${settings.optimizationTargetTag}> 内容。`, '正文优化');
+            toastr.warning(`该消息中没有可优化的 <${settings.optimizationTargetTag}> 内容。`, '正文优化', toastOptions);
         }
         return Boolean(result);
     } catch (error) {
         if (error?.name === 'AbortError') {
-            if (error?.message === '用户已停止优化') toastr.info('已停止正文优化。', '正文优化');
+            if (error?.message === '用户已停止优化') toastr.info('已停止正文优化。', '正文优化', toastOptions);
             return false;
         }
         console.error('[正文优化] 任务失败:', error);
-        if (settings.showOptimizationToast) toastr.error(error?.message || '正文优化失败。', '正文优化');
+        if (settings.showOptimizationToast) {
+            const detail = error?.message || '正文优化失败。';
+            const toast = toastr.error(detail, '正文优化失败', toastOptions);
+            $(toast).find('.toast-message').attr('title', detail);
+        }
         return false;
     } finally {
         clearProgress(controller);
@@ -123,6 +129,7 @@ export async function optimizeMessage(messageId) {
 }
 
 export async function processOptimization(messageId, signal) {
+    const startedAt = performance.now();
     const settings = getSettings();
     const context = getContext();
     const message = context.chat?.[messageId];
@@ -164,7 +171,8 @@ export async function processOptimization(messageId, signal) {
         setSnapshot({ original: originalTarget, optimized: restoredTarget });
     }
     if (settings.showOptimizationToast) {
-        toastr.success(applied ? '优化完成，已写回消息。' : '优化完成，可打开对比查看。', '正文优化');
+        const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
+        toastr.success(`耗时 ${seconds} 秒 · ${applied ? '已写回消息' : '可查看对比'}`, '正文优化完成', toastOptions);
     }
     return { originalContent: lease.original, optimizedContent: finalMessage, applied };
 }
