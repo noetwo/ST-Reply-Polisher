@@ -204,7 +204,7 @@ export const defaultSettings = {
     applyOptimizedToMessage: true,
     optimizationTargetTag: 'content',
     optimizationExclusionEnabled: false,
-    optimizationExclusionRules: [],
+    optimizationExcludedTags: [],
     showOptimizationToast: true,
     apiUrl: '',
     apiKey: '',
@@ -238,6 +238,7 @@ export function getSettings() {
     }
     delete settings.apiProvider;
     delete settings.__migratedFromAmily2;
+    delete settings.optimizationExclusionRules;
     return settings;
 }
 

@@ -6,7 +6,7 @@
     "js": "index.js",
     "css": "style.css",
     "author": "noetwo（基于 Amily2号助手，经授权精简）",
-    "version": "1.2.5",
+    "version": "1.3.0",
     "minimum_client_version": "1.18.0",
     "homePage": "https://github.com/noetwo/ST-Reply-Polisher",
     "auto_update": true

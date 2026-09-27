@@ -67,14 +67,26 @@ function escapeRegex(value) {
     return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function maskExclusionRules(text, rules, nonce = `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`) {
+export function findPairedTagNames(text) {
+    const source = String(text ?? '');
+    const opened = new Map();
+    for (const match of source.matchAll(/<([A-Za-z_][A-Za-z0-9_.:-]*)(?:\s[^<>]*?)?>/g)) {
+        if (!/\/\s*>$/.test(match[0]) && !opened.has(match[1])) opened.set(match[1], match.index);
+    }
+    const paired = new Set();
+    for (const match of source.matchAll(/<\/([A-Za-z_][A-Za-z0-9_.:-]*)\s*>/g)) {
+        if ((opened.get(match[1]) ?? Infinity) < match.index) paired.add(match[1]);
+    }
+    return [...paired].sort((a, b) => a.localeCompare(b));
+}
+
+export function maskExcludedTags(text, tags, nonce = `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`) {
     let masked = String(text ?? '');
     const replacements = [];
-    for (const rule of Array.isArray(rules) ? rules : []) {
-        const start = String(rule?.start ?? '');
-        const end = String(rule?.end ?? '');
-        if (!start || !end) continue;
-        const pattern = new RegExp(`${escapeRegex(start)}[\\s\\S]*?${escapeRegex(end)}`, 'g');
+    for (const tag of Array.isArray(tags) ? tags : []) {
+        if (!isValidTagName(tag)) continue;
+        const name = escapeRegex(tag);
+        const pattern = new RegExp(`<${name}(?:\\s[^<>]*?)?>[\\s\\S]*?<\\/${name}\\s*>`, 'g');
         masked = masked.replace(pattern, value => {
             let token = `__BODY_OPT_EXCLUDED_${nonce}_${replacements.length}__`;
             while (masked.includes(token)) token += '_';
@@ -87,7 +99,7 @@ export function maskExclusionRules(text, rules, nonce = `${Date.now().toString(3
 
 export function restoreExclusions(text, replacements) {
     let restored = String(text ?? '');
-    for (const { token, value } of replacements ?? []) {
+    for (const { token, value } of [...(replacements ?? [])].reverse()) {
         if (restored.split(token).length !== 2) {
             throw new Error('模型改动了排除内容占位符，本次结果已丢弃，原消息未修改。');
         }

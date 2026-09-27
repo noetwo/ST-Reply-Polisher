@@ -1,6 +1,8 @@
 import { saveSettingsDebounced } from '/script.js';
+import { getContext } from '/scripts/extensions.js';
 import { fetchModels, testApiConnection } from '../core/api.js';
 import { defaultSettings, getSettings, promptDefaults } from '../core/settings.js';
+import { findPairedTagNames, isOptimizableMessage, isValidTagName } from '../core/utils.js';
 import { listWorldBookNames } from '../core/worldbook.js';
 
 const numberLimits = {
@@ -42,26 +44,58 @@ function bindGeneric($panel, settings) {
     });
 }
 
-function bindExclusionRules($panel, settings) {
-    const $textarea = $panel.find('#amily2_exclusion_rules_text');
-    $textarea.val((settings.optimizationExclusionRules ?? [])
-        .filter(rule => rule?.start && rule?.end)
-        .map(rule => `${rule.start}|||${rule.end}`)
-        .join('\n'));
+function bindExclusionTags($panel, settings) {
+    const $textarea = $panel.find('#amily2_excluded_tags_text');
+    const $list = $panel.find('#amily2_exclusion_tag_list');
+    let scanned = [];
+
+    const selected = () => new Set(settings.optimizationExcludedTags ?? []);
+    const syncTextarea = () => $textarea.val([...selected()].sort((a, b) => a.localeCompare(b)).join('\n'));
+    const render = () => {
+        const chosen = selected();
+        const tags = [...new Set([...scanned, ...chosen])].sort((a, b) => a.localeCompare(b));
+        $list.empty();
+        if (!tags.length) $list.append($('<p>').addClass('family2-note').text('点击上方按钮扫描可排除标签。'));
+        for (const tag of tags) {
+            const $input = $('<input>', { type: 'checkbox' }).prop('checked', chosen.has(tag));
+            $list.append($('<label>').addClass('family2-wb-item').append($input, $('<span>').text(`<${tag}>`)));
+            $input.on('change', () => {
+                const next = selected();
+                $input.prop('checked') ? next.add(tag) : next.delete(tag);
+                settings.optimizationExcludedTags = [...next].sort((a, b) => a.localeCompare(b));
+                syncTextarea();
+                saveSettingsDebounced();
+            });
+        }
+    };
+
+    syncTextarea();
+    render();
     $textarea.on('change', () => {
-        settings.optimizationExclusionRules = String($textarea.val() ?? '')
+        const targetTag = String(settings.optimizationTargetTag ?? '').trim();
+        settings.optimizationExcludedTags = [...new Set(String($textarea.val() ?? '')
             .split('\n')
-            .map(line => line.trim())
-            .filter(Boolean)
-            .map(line => {
-                const separator = line.indexOf('|||');
-                if (separator === -1) return null;
-                const start = line.slice(0, separator).trim();
-                const end = line.slice(separator + 3).trim();
-                return start && end ? { start, end } : null;
-            })
-            .filter(Boolean);
+            .map(line => line.trim().replace(/^<|>$/g, ''))
+            .filter(tag => isValidTagName(tag) && tag !== targetTag))]
+            .sort((a, b) => a.localeCompare(b));
+        syncTextarea();
+        render();
         saveSettingsDebounced();
+    });
+
+    $panel.find('#amily2_scan_exclusion_tags').on('click', () => {
+        const settingsTarget = String(settings.optimizationTargetTag ?? '').trim();
+        const message = [...(getContext().chat ?? [])].reverse().find(isOptimizableMessage);
+        if (!message) {
+            toastr.warning('当前聊天中没有可扫描的 AI 消息。', '正文优化');
+            return;
+        }
+        scanned = findPairedTagNames(message.mes).filter(tag => tag !== settingsTarget);
+        render();
+        toastr[scanned.length ? 'success' : 'info'](
+            scanned.length ? `发现 ${scanned.length} 个成对标签。` : '最新 AI 消息中没有可排除的成对标签。',
+            '正文优化',
+        );
     });
 }
 
@@ -161,7 +195,7 @@ function bindApiButtons($panel) {
 export function bindPanel($panel) {
     const settings = getSettings();
     bindGeneric($panel, settings);
-    bindExclusionRules($panel, settings);
+    bindExclusionTags($panel, settings);
     bindPromptEditor($panel, settings);
     bindWorldbooks($panel, settings);
     bindApiButtons($panel);

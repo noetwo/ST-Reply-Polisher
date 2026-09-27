@@ -3,7 +3,7 @@ import { getContext } from '/scripts/extensions.js';
 import { callAI, generateRandomSeed } from './api.js';
 import { getPresetPrompts } from './prompts.js';
 import { getSettings } from './settings.js';
-import { extractContentByTag, isOptimizableMessage, isValidTagName, maskExclusionRules, replaceContentByTag, restoreExclusions } from './utils.js';
+import { extractContentByTag, isOptimizableMessage, isValidTagName, maskExcludedTags, replaceContentByTag, restoreExclusions } from './utils.js';
 import { getOptimizationWorldbookContent } from './worldbook.js';
 
 let activeController = null;
@@ -106,7 +106,7 @@ export async function processOptimization(messageId, previousMessages, signal) {
     if (!originalTarget?.trim()) return null;
 
     const masked = settings.optimizationExclusionEnabled
-        ? maskExclusionRules(originalTarget, settings.optimizationExclusionRules)
+        ? maskExcludedTags(originalTarget, settings.optimizationExcludedTags)
         : { text: originalTarget, replacements: [] };
     setSnapshot({ original: originalTarget, optimized: null });
 

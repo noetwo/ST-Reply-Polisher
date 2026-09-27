@@ -33,14 +33,18 @@
         <hr class="family2-divider">
         <div class="family2-section-title">内容排除</div>
         <div class="family2-group family2-row">
-            <span class="family2-label">启用排除规则</span>
+            <span class="family2-label">启用排除标签</span>
             <label class="family2-toggle">
                 <input type="checkbox" id="amily2_optimization_exclusion_enabled">
                 <span class="family2-slider family2-slider-sm"></span>
             </label>
         </div>
-        <textarea id="amily2_exclusion_rules_text" class="text_pole family2-textarea" rows="3"
-            placeholder="每行：开始标记|||结束标记&#10;例如：&lt;StatusPanel&gt;|||&lt;/StatusPanel&gt;"></textarea>
+        <div class="family2-group family2-btn-row">
+            <button type="button" id="amily2_scan_exclusion_tags" class="menu_button family2-btn">扫描最新 AI 消息</button>
+        </div>
+        <div id="amily2_exclusion_tag_list" class="family2-wb-list"></div>
+        <textarea id="amily2_excluded_tags_text" class="text_pole family2-textarea" rows="3"
+            placeholder="每行一个标签名，例如：StatusPanel"></textarea>
         <p class="family2-note">匹配内容会用严格占位符保护；模型漏掉或改动占位符时整次写回取消。</p>
 
         <hr class="family2-divider">
