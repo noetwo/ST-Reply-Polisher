@@ -1,4 +1,4 @@
-export const defaultExecutionPrompt = '请按照上述规则优化上一条 assistant 消息中的 <{{targetTag}}> 内容。只返回完整的 <{{targetTag}}>...</{{targetTag}}>，不要续写对话，也不要输出解释或标签外文字。';
+export const defaultExecutionPrompt = '按上述文风重写 <{{targetTag}}> 中的全部正文，保持原文人称。对白改成真人接话的样子，去 AI 腔但不要压成短答。只返回完整的 <{{targetTag}}>...</{{targetTag}}>。';
 
 export function buildOptimizationMessages({ settings, chat, messageId, worldbook, targetTag, targetText }) {
     const messages = [];
