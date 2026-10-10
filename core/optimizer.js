@@ -14,25 +14,35 @@ function setSnapshot(snapshot) {
     window.BodyOptimizerSnapshot = snapshot;
 }
 
-function captureLease(context, messageId, message) {
+function captureLease(context, messageId, message, targetTag) {
     return {
         chatId: context.chatId,
         characterId: context.characterId,
         groupId: context.groupId,
         messageId,
         message,
+        swipeId: message.swipe_id,
+        targetTag,
         original: message.mes,
+        originalTarget: extractContentByTag(message.mes, targetTag),
     };
 }
 
-function assertCurrent(lease, expectedContent = lease.original) {
+// 只校验目标标签内的正文：MVU 等脚本在收到消息后会改写标签外的内容（如追加状态栏占位符），这不应作废优化结果。
+function assertCurrent(lease, expectedTarget = lease.originalTarget) {
     const context = getContext();
     const currentMessage = context.chat?.[lease.messageId];
     const sameChat = context.chatId === lease.chatId
         && context.characterId === lease.characterId
         && context.groupId === lease.groupId;
-    if (!sameChat || currentMessage !== lease.message || currentMessage?.mes !== expectedContent) {
+    if (!sameChat || currentMessage !== lease.message) {
         throw new Error('聊天或目标消息已变化，本次结果已安全丢弃。');
+    }
+    if (currentMessage.swipe_id !== lease.swipeId) {
+        throw new Error('目标消息已切换到其他回复，本次结果已安全丢弃。');
+    }
+    if (extractContentByTag(currentMessage.mes, lease.targetTag) !== expectedTarget) {
+        throw new Error(`目标消息的 <${lease.targetTag}> 正文已被其他脚本或编辑改动，本次结果已安全丢弃。`);
     }
     return context;
 }
@@ -138,8 +148,8 @@ export async function processOptimization(messageId, signal) {
     const targetTag = String(settings.optimizationTargetTag ?? 'content').trim();
     if (!isValidTagName(targetTag)) throw new Error('目标标签名无效。');
 
-    const lease = captureLease(context, messageId, message);
-    const originalTarget = extractContentByTag(lease.original, targetTag);
+    const lease = captureLease(context, messageId, message, targetTag);
+    const originalTarget = lease.originalTarget;
     if (!originalTarget?.trim()) return null;
 
     const masked = settings.optimizationExclusionEnabled
@@ -161,10 +171,11 @@ export async function processOptimization(messageId, signal) {
 
     const restoredTarget = restoreExclusions(optimizedTarget, masked.replacements);
     assertCurrent(lease);
-    const finalMessage = replaceContentByTag(lease.original, targetTag, restoredTarget);
+    const baseMessage = lease.message.mes;
+    const finalMessage = replaceContentByTag(baseMessage, targetTag, restoredTarget);
 
-    const applied = settings.applyOptimizedToMessage && finalMessage !== lease.original
-        ? await applyMessageContent(lease, finalMessage)
+    const applied = settings.applyOptimizedToMessage && finalMessage !== baseMessage
+        ? await applyMessageContent(lease, baseMessage, finalMessage, restoredTarget)
         : false;
     const current = getContext();
     if (current.chatId === lease.chatId && current.characterId === lease.characterId && current.groupId === lease.groupId) {
@@ -174,21 +185,28 @@ export async function processOptimization(messageId, signal) {
         const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
         toastr.success(`耗时 ${seconds} 秒 · ${applied ? '已写回消息' : '可查看对比'}`, '正文优化完成', toastOptions);
     }
-    return { originalContent: lease.original, optimizedContent: finalMessage, applied };
+    return { originalContent: baseMessage, optimizedContent: finalMessage, applied };
 }
 
-async function applyMessageContent(lease, newContent) {
+function writeMessage(message, content) {
+    message.mes = content;
+    if (Array.isArray(message.swipes) && Number.isInteger(message.swipe_id) && message.swipe_id in message.swipes) {
+        message.swipes[message.swipe_id] = content;
+    }
+}
+
+async function applyMessageContent(lease, baseContent, newContent, newTarget) {
     const context = assertCurrent(lease);
-    lease.message.mes = newContent;
+    writeMessage(lease.message, newContent);
     try {
         await context.saveChat();
     } catch (error) {
-        if (lease.message.mes === newContent) lease.message.mes = lease.original;
+        if (lease.message.mes === newContent) writeMessage(lease.message, baseContent);
         throw error;
     }
 
     try {
-        assertCurrent(lease, newContent);
+        assertCurrent(lease, newTarget);
         await eventSource.emit(event_types.MESSAGE_EDITED, lease.messageId);
         await context.reloadCurrentChat();
     } catch (error) {
